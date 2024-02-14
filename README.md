@@ -1,4 +1,4 @@
-# MV-SWIN-T
+# MV-Swin-T
 
 In this article, we present a novel transformer-based multi-view network, MV-Swin-T, built upon the Swin Transformer architecture for mammographic image classification to fully exploit multi-view insights.
 Our contributions include:
