@@ -6,8 +6,6 @@
 # --------------------------------------------------------
 
 
-
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -38,7 +36,7 @@ class DynamicAttention_multiview(nn.Module):
 
         super().__init__()
         self.dim = dim
-        self.window_size = window_size  # Wh, Ww
+        self.window_size = window_size 
         self.pretrained_window_size = pretrained_window_size
         self.num_heads = num_heads
         self.diff_attn = diff_attn
@@ -79,18 +77,18 @@ class DynamicAttention_multiview(nn.Module):
         coords_h_1 = torch.arange(self.window_size[0])
         coords_w_1 = torch.arange(self.window_size[1])
         coords_1 = torch.stack(torch.meshgrid(
-            [coords_h_1, coords_w_1]))  # 2, Wh, Ww
-        coords_flatten_1 = torch.flatten(coords_1, 1)  # 2, Wh*Ww
-        # 2, Wh*Ww, Wh*Ww
+            [coords_h_1, coords_w_1]))  
+        coords_flatten_1 = torch.flatten(coords_1, 1) 
+        
         relative_coords_1 = coords_flatten_1[:,
                                              :, None] - coords_flatten_1[:, None, :]
         relative_coords_1 = relative_coords_1.permute(
-            1, 2, 0).contiguous()  # Wh*Ww, Wh*Ww, 2
+            1, 2, 0).contiguous()  
         relative_coords_1[:, :, 0] += self.window_size[0] - \
-            1  # shift to start from 0
+            1  
         relative_coords_1[:, :, 1] += self.window_size[1] - 1
         relative_coords_1[:, :, 0] *= 2 * self.window_size[1] - 1
-        relative_position_index_1 = relative_coords_1.sum(-1)  # Wh*Ww, Wh*Ww
+        relative_position_index_1 = relative_coords_1.sum(-1)  
         self.register_buffer("relative_position_index_1",
                              relative_position_index_1)
 
@@ -123,7 +121,7 @@ class DynamicAttention_multiview(nn.Module):
             -(self.window_size[1] - 1), self.window_size[1], dtype=torch.float32)
         relative_coords_table_2 = torch.stack(
             torch.meshgrid([relative_coords_h_2,
-                            relative_coords_w_2])).permute(1, 2, 0).contiguous().unsqueeze(0)  # 1, 2*Wh-1, 2*Ww-1, 2
+                            relative_coords_w_2])).permute(1, 2, 0).contiguous().unsqueeze(0)  
         if pretrained_window_size[0] > 0:
             relative_coords_table_2[:, :, :,
                                     0] /= (pretrained_window_size[0] - 1)
@@ -143,18 +141,17 @@ class DynamicAttention_multiview(nn.Module):
         coords_h_2 = torch.arange(self.window_size[0])
         coords_w_2 = torch.arange(self.window_size[1])
         coords_2 = torch.stack(torch.meshgrid(
-            [coords_h_2, coords_w_2]))  # 2, Wh, Ww
-        coords_flatten_2 = torch.flatten(coords_2, 1)  # 2, Wh*Ww
-        # 2, Wh*Ww, Wh*Ww
+            [coords_h_2, coords_w_2])) 
+        coords_flatten_2 = torch.flatten(coords_2, 1)  
         relative_coords_2 = coords_flatten_2[:,
                                              :, None] - coords_flatten_2[:, None, :]
         relative_coords_2 = relative_coords_2.permute(
-            1, 2, 0).contiguous()  # Wh*Ww, Wh*Ww, 2
+            1, 2, 0).contiguous()  
         relative_coords_2[:, :, 0] += self.window_size[0] - \
-            1  # shift to start from 0
+            1  
         relative_coords_2[:, :, 1] += self.window_size[1] - 1
         relative_coords_2[:, :, 0] *= 2 * self.window_size[1] - 1
-        relative_position_index_2 = relative_coords_2.sum(-1)  # Wh*Ww, Wh*Ww
+        relative_position_index_2 = relative_coords_2.sum(-1)  #
         self.register_buffer("relative_position_index_2",
                              relative_position_index_2)
 
@@ -191,7 +188,6 @@ class DynamicAttention_multiview(nn.Module):
         qkv_1 = F.linear(input=x1, weight=self.qkv_1.weight, bias=qkv_bias_1)
         qkv_1 = qkv_1.reshape(B_, N, 3, self.num_heads, -
                               1).permute(2, 0, 3, 1, 4)
-        # make torchscript happy (cannot use tensor as tuple)
         q_x1, k_x1, v_x1 = qkv_1[0], qkv_1[1], qkv_1[2]
 
         # Second view
@@ -202,7 +198,6 @@ class DynamicAttention_multiview(nn.Module):
         qkv_2 = F.linear(input=x2, weight=self.qkv_2.weight, bias=qkv_bias_2)
         qkv_2 = qkv_2.reshape(B_, N, 3, self.num_heads, -
                               1).permute(2, 0, 3, 1, 4)
-        # make torchscript happy (cannot use tensor as tuple)
         q_x2, k_x2, v_x2 = qkv_2[0], qkv_2[1], qkv_2[2]
 
         if self.diff_attn:
@@ -217,6 +212,11 @@ class DynamicAttention_multiview(nn.Module):
             concat_attn_x1 = torch.concat(
                 (attn_same_x1, attn_diff_x1), dim=1).permute(0, 2, 3, 1)
             # print("concat : ", concat_attn_x1.shape)
+
+            ## For weighted average:
+            # attn_x1 = (0.9 * attn_same_x1 + 0.1 * attn_diff_x1) * logit_scale_1
+
+            ## For concatenation:
             attn_x1 = self.proj_concat_1(concat_attn_x1).permute(
                 0, 3, 1, 2) * logit_scale_1
 
@@ -227,7 +227,10 @@ class DynamicAttention_multiview(nn.Module):
                             F.normalize(k_x1, dim=-1).transpose(-2, -1))
             logit_scale_2 = torch.clamp(self.logit_scale_2, max=torch.log(
                 torch.tensor(1. / 0.01).cuda())).exp()
+            ## For weighted average:
             # attn_x2 = (0.9 * attn_same_x2 + 0.1 * attn_diff_x2) * logit_scale_2
+
+            ## For concatenation:
             concat_attn_x2 = torch.concat(
                 (attn_same_x2, attn_diff_x2), dim=1).permute(0, 2, 3, 1)
             attn_x2 = self.proj_concat_2(concat_attn_x2).permute(
@@ -250,18 +253,18 @@ class DynamicAttention_multiview(nn.Module):
         relative_position_bias_table_1 = self.cpb_mlp_1(
             self.relative_coords_table_1).view(-1, self.num_heads)
         relative_position_bias_1 = relative_position_bias_table_1[self.relative_position_index_1.view(-1)].view(
-            self.window_size[0] * self.window_size[1], self.window_size[0] * self.window_size[1], -1)  # Wh*Ww,Wh*Ww,nH
+            self.window_size[0] * self.window_size[1], self.window_size[0] * self.window_size[1], -1)  
         relative_position_bias_1 = relative_position_bias_1.permute(
-            2, 0, 1).contiguous()  # nH, Wh*Ww, Wh*Ww
+            2, 0, 1).contiguous()  
         relative_position_bias_1 = 16 * torch.sigmoid(relative_position_bias_1)
         attn_x1 = attn_x1 + relative_position_bias_1.unsqueeze(0)
 
         relative_position_bias_table_2 = self.cpb_mlp_2(
             self.relative_coords_table_2).view(-1, self.num_heads)
         relative_position_bias_2 = relative_position_bias_table_2[self.relative_position_index_2.view(-1)].view(
-            self.window_size[0] * self.window_size[1], self.window_size[0] * self.window_size[1], -1)  # Wh*Ww,Wh*Ww,nH
+            self.window_size[0] * self.window_size[1], self.window_size[0] * self.window_size[1], -1)  
         relative_position_bias_2 = relative_position_bias_2.permute(
-            2, 0, 1).contiguous()  # nH, Wh*Ww, Wh*Ww
+            2, 0, 1).contiguous()  
         relative_position_bias_2 = 16 * torch.sigmoid(relative_position_bias_2)
         attn_x2 = attn_x2 + relative_position_bias_2.unsqueeze(0)
 
@@ -330,7 +333,6 @@ class OmniAttentionTransformerBlock_multiview(nn.Module):
         self.shift_size = shift_size
         self.mlp_ratio = mlp_ratio
         if min(self.input_resolution) <= self.window_size:
-            # if window size is larger than input resolution, we don't partition windows
             self.shift_size = 0
             self.window_size = min(self.input_resolution)
         assert 0 <= self.shift_size < self.window_size, "shift_size must in 0-window_size"
@@ -355,9 +357,8 @@ class OmniAttentionTransformerBlock_multiview(nn.Module):
             in_features=dim, hidden_features=mlp_hidden_dim, act_layer=act_layer, drop=drop)
 
         if self.shift_size > 0:
-            # calculate attention mask for SW-MSA
             H, W = self.input_resolution
-            img_mask = torch.zeros((1, H, W, 1))  # 1 H W 1
+            img_mask = torch.zeros((1, H, W, 1))
             h_slices = (slice(0, -self.window_size),
                         slice(-self.window_size, -self.shift_size),
                         slice(-self.shift_size, None))
@@ -370,7 +371,6 @@ class OmniAttentionTransformerBlock_multiview(nn.Module):
                     img_mask[:, h, w, :] = cnt
                     cnt += 1
 
-            # nW, window_size, window_size, 1
             mask_windows = window_partition(img_mask, self.window_size)
             mask_windows = mask_windows.view(-1,
                                              self.window_size * self.window_size)
@@ -402,34 +402,29 @@ class OmniAttentionTransformerBlock_multiview(nn.Module):
             shifted_x1 = x1
             shifted_x2 = x2
 
-        # partition windows
-        # nW*B, window_size, window_size, C
         x_windows_1 = window_partition(shifted_x1, self.window_size)
-        # nW*B, window_size*window_size, C
         x_windows_1 = x_windows_1.view(-1,
                                        self.window_size * self.window_size, C)
 
-        # nW*B, window_size, window_size, C
         x_windows_2 = window_partition(shifted_x2, self.window_size)
-        # nW*B, window_size*window_size, C
         x_windows_2 = x_windows_2.view(-1,
                                        self.window_size * self.window_size, C)
 
-        # W-MSA/SW-MSA
+        # W-MDA/SW-MDA
         attn_windows_1, attn_windows_2 = self.attn(x_windows_1,
                                                    x_windows_2,
                                                    mask1=self.attn_mask,
-                                                   mask2=self.attn_mask)  # nW*B, window_size*window_size, C
+                                                   mask2=self.attn_mask) 
 
         # merge windows
         attn_windows_1 = attn_windows_1.view(-1,
                                              self.window_size, self.window_size, C)
         shifted_x1 = window_reverse(
-            attn_windows_1, self.window_size, H, W)  # B H' W' C
+            attn_windows_1, self.window_size, H, W) 
         attn_windows_2 = attn_windows_2.view(-1,
                                              self.window_size, self.window_size, C)
         shifted_x2 = window_reverse(
-            attn_windows_2, self.window_size, H, W)  # B H' W' C
+            attn_windows_2, self.window_size, H, W) 
 
         # reverse cyclic shift
         if self.shift_size > 0:
@@ -450,5 +445,3 @@ class OmniAttentionTransformerBlock_multiview(nn.Module):
         x2 = x2 + self.drop_path_2(self.norm2_2(self.mlp_2(x2)))
 
         return x1, x2
-
-

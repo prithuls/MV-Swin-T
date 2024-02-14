@@ -1,6 +1,6 @@
 # --------------------------------------------------------
 # Multi View Swin Transformer
-# Copyright (c) 2022 Microsoft
+# Copyright (c) 2022
 # Licensed under The MIT License [see LICENSE for details]
 # Written by Prithul Sarker and Sushmita Sarker
 # --------------------------------------------------------
@@ -8,7 +8,7 @@
 import torch
 import torch.nn as nn
 import torch.utils.checkpoint as checkpoint
-from timm.models.layers import trunc_normal_
+from timm.models.layers import trunc_normal_, to_2tuple
 from models.singleviewutils import SwinTransformerBlock_singleview
 from models.multiviewutils import OmniAttentionTransformerBlock_multiview
 
@@ -39,12 +39,12 @@ class PatchMerging(nn.Module):
 
         x = x.view(B, H, W, C)
 
-        x0 = x[:, 0::2, 0::2, :]  # B H/2 W/2 C
-        x1 = x[:, 1::2, 0::2, :]  # B H/2 W/2 C
-        x2 = x[:, 0::2, 1::2, :]  # B H/2 W/2 C
-        x3 = x[:, 1::2, 1::2, :]  # B H/2 W/2 C
-        x = torch.cat([x0, x1, x2, x3], -1)  # B H/2 W/2 4*C
-        x = x.view(B, -1, 4 * C)  # B H/2*W/2 4*C
+        x0 = x[:, 0::2, 0::2, :]  
+        x1 = x[:, 1::2, 0::2, :]  
+        x2 = x[:, 0::2, 1::2, :]  
+        x3 = x[:, 1::2, 1::2, :]  
+        x = torch.cat([x0, x1, x2, x3], -1)  
+        x = x.view(B, -1, 4 * C)  
 
         x = self.reduction(x)
         x = self.norm(x)
@@ -96,7 +96,7 @@ class PatchEmbed(nn.Module):
         B, C, H, W = x.shape
         assert H == self.img_size[0] and W == self.img_size[1], \
             f"Input image size ({H}*{W}) doesn't match model ({self.img_size[0]}*{self.img_size[1]})."
-        x = self.proj(x).flatten(2).transpose(1, 2)  # B Ph*Pw C
+        x = self.proj(x).flatten(2).transpose(1, 2)  
         if self.norm is not None:
             x = self.norm(x)
         return x
@@ -426,8 +426,8 @@ class MVSwinTransformer(nn.Module):
         for layer in self.layers_fused:
             x = layer(x)
 
-        x = self.norm(x)  # B L C
-        x = self.avgpool(x.transpose(1, 2))  # B C 1
+        x = self.norm(x)  
+        x = self.avgpool(x.transpose(1, 2)) 
         x = torch.flatten(x, 1)
         return x
 
