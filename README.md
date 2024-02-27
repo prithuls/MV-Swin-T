@@ -17,3 +17,6 @@ Our contributions include:
 
 ![cross_attention](https://github.com/prithuls/MV-Swin-T/assets/43958517/af72ac57-7c20-4584-85cc-9728fdd9234e)
 
+
+
+![window_attention](https://github.com/prithuls/MV-Swin-T/assets/105523359/fa856cd4-ee0e-4e6e-9e7a-af8c2dd222bf)
