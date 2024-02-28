@@ -24,7 +24,7 @@ Our contributions include:
 
 ## Citation
 
-If you find this project useful, please consider citing our paper:
+If you find this work useful, please consider citing our paper:
 
 ```bibtex
 @article{sarker2024mv,
