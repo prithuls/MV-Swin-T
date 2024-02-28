@@ -21,9 +21,4 @@ Our contributions include:
 
 ![window_attention](https://github.com/prithuls/MV-Swin-T/assets/105523359/fa856cd4-ee0e-4e6e-9e7a-af8c2dd222bf)
 
-@article{sarker2024mv,
-  title={MV-Swin-T: Mammogram Classification with Multi-view Swin Transformer},
-  author={Sarker, Sushmita and Sarker, Prithul and Bebis, George and Tavakkoli, Alireza},
-  journal={arXiv preprint arXiv:2402.16298},
-  year={2024}
-}
+
